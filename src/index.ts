@@ -1,9 +1,9 @@
-import { lexer, MarkedToken, Token } from "marked";
+import { lexer, Token } from "marked";
 import typia from "typia";
 import { codeBlock } from "./codeBlock";
 import { heading } from "./heading";
 import { isMarkedToken } from "./IsMarkedToken";
-import { mideaSingle } from "./mediaSingle";
+import { mediaSingle } from "./mediaSingle";
 import { rule } from "./rule";
 import { text } from "./text";
 import { IJiraService, ListItemNode, ListNode } from "./type";
@@ -17,7 +17,7 @@ function _transform(options: { token: Token; convertParagraph?: boolean }): Jira
   }
 
   switch (target.type) {
-    case "blockquote":{
+    case "blockquote": {
       const transformed = transform({ tokens: target.tokens });
       if (typia.is<IJiraService.BlockquoteNode["content"]>(transformed)) {
         return { type: "blockquote", content: transformed } satisfies IJiraService.BlockquoteNode;
@@ -35,7 +35,7 @@ function _transform(options: { token: Token; convertParagraph?: boolean }): Jira
       return text({ text: target.text, marks: [{ type: "code" }] });
     }
     case "def": {
-    // 링크 정의에 해당하나 각 링크 별로 흩어지는 게 맞는 듯 하다.
+      // 링크 정의에 해당하나 각 링크 별로 흩어지는 게 맞는 듯 하다.
       return null;
     }
     case "del": {
@@ -65,7 +65,7 @@ function _transform(options: { token: Token; convertParagraph?: boolean }): Jira
       return text({ text: target.text });
     }
     case "image": {
-      return mideaSingle({ url: target.href });
+      return mediaSingle({ url: target.href });
     }
     case "link": {
       return text({
@@ -76,13 +76,15 @@ function _transform(options: { token: Token; convertParagraph?: boolean }): Jira
     case "list": {
       return {
         type: target.ordered ? "orderedList" : "bulletList",
-        content: target.items.map((item) => {
-          const transformed = transform({ tokens: item.tokens, convertParagraph: true })
-          if (typia.is<ListItemNode["content"]>(transformed)) {
-            return { type: "listItem", content: transformed } satisfies ListItemNode;
-          }
-          return null;
-        }).filter((el) => el !== null),
+        content: target.items
+          .map((item) => {
+            const transformed = transform({ tokens: item.tokens, convertParagraph: true });
+            if (typia.is<ListItemNode["content"]>(transformed)) {
+              return { type: "listItem", content: transformed } satisfies ListItemNode;
+            }
+            return null;
+          })
+          .filter((el) => el !== null),
       } satisfies ListNode;
     }
     case "list_item": {
@@ -168,13 +170,13 @@ function _transform(options: { token: Token; convertParagraph?: boolean }): Jira
                       transformed,
                     })
                   );
-  
+
                   return null;
                 }
               }) as any[],
             };
           }),
-        ]
+        ],
       } satisfies IJiraService.TableNode;
     }
     case "text": {
@@ -188,8 +190,8 @@ function _transform(options: { token: Token; convertParagraph?: boolean }): Jira
             },
           ],
         } satisfies IJiraService.ParagraphNode;
-      } 
-      
+      }
+
       return {
         type: "text",
         text: target.raw,

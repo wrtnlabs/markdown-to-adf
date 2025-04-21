@@ -16,165 +16,192 @@ function _transform(options: { token: Token; convertParagraph?: boolean }): Jira
     return null;
   }
 
-  const targetMarkedToken = target as MarkedToken;
-  if (targetMarkedToken.type === "blockquote") {
-    const transformed = transform({ tokens: targetMarkedToken.tokens });
-    if (typia.is<IJiraService.BlockquoteNode["content"]>(transformed)) {
-      return { type: "blockquote", content: transformed } satisfies IJiraService.BlockquoteNode;
+  switch (target.type) {
+    case "blockquote":{
+      const transformed = transform({ tokens: target.tokens });
+      if (typia.is<IJiraService.BlockquoteNode["content"]>(transformed)) {
+        return { type: "blockquote", content: transformed } satisfies IJiraService.BlockquoteNode;
+      }
+      return null;
     }
-    return null;
-  } else if (targetMarkedToken.type === "br") {
-    return null;
-  } else if (targetMarkedToken.type === "code") {
-    return codeBlock({ text: targetMarkedToken.text, language: targetMarkedToken.lang });
-  } else if (targetMarkedToken.type === "codespan") {
-    // Represents a string enclosed in backticks, indicating emphasized text.
-    return text({ text: targetMarkedToken.text, marks: [{ type: "code" }] });
-  } else if (targetMarkedToken.type === "def") {
+    case "br": {
+      return null;
+    }
+    case "code": {
+      return codeBlock({ text: target.text, language: target.lang });
+    }
+    case "codespan": {
+      // Represents a string enclosed in backticks, indicating emphasized text.
+      return text({ text: target.text, marks: [{ type: "code" }] });
+    }
+    case "def": {
     // 링크 정의에 해당하나 각 링크 별로 흩어지는 게 맞는 듯 하다.
-    return null;
-  } else if (targetMarkedToken.type === "del") {
-    // Represents text that has been deleted or crossed out.
-    return text({ text: targetMarkedToken.text, marks: [{ type: "strike" }] });
-  } else if (targetMarkedToken.type === "em") {
-    return text({ text: targetMarkedToken.text, marks: [{ type: "em" }] });
-  } else if (targetMarkedToken.type === "escape") {
-    return null;
-  } else if (targetMarkedToken.type === "heading") {
-    const inlines = transform({ tokens: targetMarkedToken.tokens });
-
-    // narrow types to InlineNode[]
-    if (typia.is<IJiraService.InlineNode[]>(inlines)) {
-      const level = (targetMarkedToken.depth <= 6 ? targetMarkedToken.depth : 6) as 1 | 2 | 3 | 4 | 5 | 6;
-      return heading({ content: inlines, level });
+      return null;
     }
-    return null;
-  } else if (targetMarkedToken.type === "hr") {
-    return rule();
-  } else if (targetMarkedToken.type === "html") {
-    // TODO: how to handle HTML?
-    return text({ text: targetMarkedToken.text });
-  } else if (targetMarkedToken.type === "image") {
-    return mideaSingle({ url: targetMarkedToken.href });
-  } else if (targetMarkedToken.type === "link") {
-    return text({
-      text: targetMarkedToken.title ?? targetMarkedToken.text,
-      marks: [{ type: "link", attrs: { href: targetMarkedToken.href } }],
-    });
-  } else if (targetMarkedToken.type === "list") {
-    return {
-      type: targetMarkedToken.ordered ? "orderedList" : "bulletList",
-      content: targetMarkedToken.items
-        .map((item) => {
-          const transformed = transform({ tokens: item.tokens, convertParagraph: true });
+    case "del": {
+      // Represents text that has been deleted or crossed out.
+      return text({ text: target.text, marks: [{ type: "strike" }] });
+    }
+    case "em": {
+      return text({ text: target.text, marks: [{ type: "em" }] });
+    }
+    case "escape": {
+      // Represents an escape character, which is used to escape special characters.
+      return null;
+    }
+    case "heading": {
+      const inlines = transform({ tokens: target.tokens });
+      if (typia.is<IJiraService.InlineNode[]>(inlines)) {
+        const level = (target.depth <= 6 ? target.depth : 6) as 1 | 2 | 3 | 4 | 5 | 6;
+        return heading({ content: inlines, level });
+      }
+      return null;
+    }
+    case "hr": {
+      return rule();
+    }
+    case "html": {
+      // TODO: how to handle HTML?
+      return text({ text: target.text });
+    }
+    case "image": {
+      return mideaSingle({ url: target.href });
+    }
+    case "link": {
+      return text({
+        text: target.title ?? target.text,
+        marks: [{ type: "link", attrs: { href: target.href } }],
+      });
+    }
+    case "list": {
+      return {
+        type: target.ordered ? "orderedList" : "bulletList",
+        content: target.items.map((item) => {
+          const transformed = transform({ tokens: item.tokens, convertParagraph: true })
           if (typia.is<ListItemNode["content"]>(transformed)) {
             return { type: "listItem", content: transformed } satisfies ListItemNode;
           }
           return null;
-        })
-        .filter((el) => el !== null),
-    } satisfies ListNode;
-  } else if (targetMarkedToken.type === "paragraph") {
-    const transformed = transform({ tokens: targetMarkedToken.tokens });
-    if (transformed.length === 1 && transformed.at(0)?.type === "mediaSingle") {
-      return transformed[0] ?? null;
-    } else if (typia.is<IJiraService.InlineNode[]>(transformed)) {
-      return {
-        type: "paragraph",
-        content: transformed,
-      } satisfies IJiraService.ParagraphNode;
-    } else {
+        }).filter((el) => el !== null),
+      } satisfies ListNode;
+    }
+    case "list_item": {
+      // not implemented
       return null;
     }
-  } else if (targetMarkedToken.type === "space") {
-    return {
-      type: "paragraph",
-      content: [
-        {
-          // 줄바꿈을 의미한다.
-          type: "hardBreak",
-          attrs: {
-            text: "\n",
-          },
-        },
-      ],
-    } satisfies IJiraService.ParagraphNode;
-  } else if (targetMarkedToken.type === "strong") {
-    return {
-      type: "text",
-      text: targetMarkedToken.text,
-      marks: [
-        {
-          type: "strong",
-        },
-      ],
-    } satisfies IJiraService.Text;
-  } else if (targetMarkedToken.type === "table") {
-    return {
-      type: "table",
-      content: [
-        {
-          type: "tableRow",
-          content: targetMarkedToken.header.map((cell) => {
-            const content = transform({
-              tokens: cell.tokens,
-              convertParagraph: true,
-            });
-            return {
-              type: "tableHeader",
-              content,
-            } as any;
-          }),
-        } satisfies IJiraService.TableRowNode,
-        ...targetMarkedToken.rows.map((cells): IJiraService.TableRowNode => {
-          return {
-            type: "tableRow",
-            content: cells.map((cell) => {
-              const transformed = transform({
-                tokens: cell.tokens,
-                convertParagraph: true,
-              });
-              if (typia.is<IJiraService.TableCellNode["content"]>(transformed)) {
-                return {
-                  type: "tableCell",
-                  content: transformed,
-                } satisfies IJiraService.TableCellNode;
-              } else {
-                console.warn(
-                  JSON.stringify({
-                    message: "tableRow, tableCell build failed.",
-                    cell,
-                    transformed,
-                  })
-                );
+    case "paragraph": {
+      const transformed = transform({ tokens: target.tokens });
+      const firstItem = transformed.at(0);
+      if (transformed.length === 1 && firstItem?.type === "mediaSingle") {
+        return firstItem;
+      }
 
-                return null;
-              }
-            }) as any[],
-          };
-        }),
-      ],
-    } satisfies IJiraService.TableNode;
-  } else if (targetMarkedToken.type === "text") {
-    if (options.convertParagraph) {
+      if (typia.is<IJiraService.InlineNode[]>(transformed)) {
+        return {
+          type: "paragraph",
+          content: transformed,
+        } satisfies IJiraService.ParagraphNode;
+      }
+
+      return null;
+    }
+    case "space": {
       return {
         type: "paragraph",
         content: [
           {
-            type: "text",
-            text: targetMarkedToken.text,
+            // this mean line break
+            type: "hardBreak",
+            attrs: {
+              text: "\n",
+            },
           },
         ],
       } satisfies IJiraService.ParagraphNode;
-    } else {
+    }
+    case "strong": {
       return {
         type: "text",
-        text: targetMarkedToken.raw,
+        text: target.text,
+        marks: [
+          {
+            type: "strong",
+          },
+        ],
       } satisfies IJiraService.Text;
     }
+    case "table": {
+      return {
+        type: "table",
+        content: [
+          {
+            type: "tableRow",
+            content: target.header.map((cell) => {
+              const content = transform({
+                tokens: cell.tokens,
+                convertParagraph: true,
+              });
+              return {
+                type: "tableHeader",
+                content,
+              } as any;
+            }),
+          } satisfies IJiraService.TableRowNode,
+          ...target.rows.map((cells): IJiraService.TableRowNode => {
+            return {
+              type: "tableRow",
+              content: cells.map((cell) => {
+                const transformed = transform({
+                  tokens: cell.tokens,
+                  convertParagraph: true,
+                });
+                if (typia.is<IJiraService.TableCellNode["content"]>(transformed)) {
+                  return {
+                    type: "tableCell",
+                    content: transformed,
+                  } satisfies IJiraService.TableCellNode;
+                } else {
+                  console.warn(
+                    JSON.stringify({
+                      message: "tableRow, tableCell build failed.",
+                      cell,
+                      transformed,
+                    })
+                  );
+  
+                  return null;
+                }
+              }) as any[],
+            };
+          }),
+        ]
+      } satisfies IJiraService.TableNode;
+    }
+    case "text": {
+      if (options.convertParagraph) {
+        return {
+          type: "paragraph",
+          content: [
+            {
+              type: "text",
+              text: target.text,
+            },
+          ],
+        } satisfies IJiraService.ParagraphNode;
+      } 
+      
+      return {
+        type: "text",
+        text: target.raw,
+      } satisfies IJiraService.Text;
+    }
+    default: {
+      // check exhaustive
+      target satisfies never;
+      // should not happen
+      return null;
+    }
   }
-
-  return null;
 }
 
 function transform(options: { tokens: Token; convertParagraph?: boolean }): JiraContentNode[];

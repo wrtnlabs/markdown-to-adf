@@ -110,7 +110,7 @@ function _transform(options: { token: Token; convertParagraph?: boolean }): Jira
         type: "paragraph",
         content: [
           {
-            // this mean line break
+            // this means line break
             type: "hardBreak",
             attrs: {
               text: "\n",

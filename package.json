@@ -1,5 +1,8 @@
 {
-  "name": "markdown-to-adf",
+  "name": "@wrtnlabs/markdown-to-adf",
+  "publishConfig": {
+    "access": "public"
+  },
   "version": "1.0.0",
   "description": "Markdown to ADF(Jira, Atlassian) format blacks",
   "main": "dist/index.js",

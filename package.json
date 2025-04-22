@@ -3,8 +3,22 @@
   "publishConfig": {
     "access": "public"
   },
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Markdown to ADF(Jira, Atlassian) format blacks",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/wrtnlabs/markdown-to-adf"
+  },
+  "homepage": "https://github.com/wrtnlabs/markdown-to-adf#readme",
+  "bugs": {
+    "url": "https://github.com/wrtnlabs/markdown-to-adf/issues"
+  },
+  "keywords": [
+    "markdown",
+    "adf",
+    "jira",
+    "atlassian"
+  ],
   "main": "dist/index.js",
   "files": [
     "dist"
@@ -14,7 +28,6 @@
     "prepare": "ts-patch install",
     "build": "rimraf dist && tsc -p tsconfig.json"
   },
-  "keywords": [],
   "author": "kakasoo",
   "license": "ISC",
   "devDependencies": {

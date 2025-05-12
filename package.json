@@ -29,7 +29,7 @@
     "build": "rimraf dist && tsc -p tsconfig.json"
   },
   "author": "kakasoo",
-  "license": "ISC",
+  "license": "MIT",
   "devDependencies": {
     "rimraf": "^6.0.1",
     "ts-patch": "^3.3.0",
